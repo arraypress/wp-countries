@@ -111,3 +111,31 @@ if ( ! function_exists( 'sanitize_country_code' ) ) {
 		return Countries::sanitize( $code );
 	}
 }
+
+if ( ! function_exists( 'get_country_continent' ) ) {
+	/**
+	 * Get continent for country.
+	 *
+	 * @param string $code Country code.
+	 *
+	 * @return string|null Continent name or null.
+	 * @since 1.0.0
+	 */
+	function get_country_continent( string $code ): ?string {
+		return Countries::get_continent( $code );
+	}
+}
+
+if ( ! function_exists( 'is_english_speaking_country' ) ) {
+	/**
+	 * Check if country is English-speaking.
+	 *
+	 * @param string $code Country code.
+	 *
+	 * @return bool True if English-speaking country.
+	 * @since 1.0.0
+	 */
+	function is_english_speaking_country( string $code ): bool {
+		return Countries::is_english_speaking( $code );
+	}
+}

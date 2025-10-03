@@ -29,11 +29,12 @@ class Countries {
 	/**
 	 * Get all countries
 	 *
+	 * @param bool $translate Whether to return translated names
+	 *
 	 * @return array Array of country code => country name pairs
 	 * @since 1.0.0
-	 *
 	 */
-	public static function all(): array {
+	public static function all( bool $translate = true ): array {
 		$countries = [
 			'AF' => __( 'Afghanistan', 'arraypress' ),
 			'AX' => __( 'Åland Islands', 'arraypress' ),
@@ -286,62 +287,112 @@ class Countries {
 			'ZW' => __( 'Zimbabwe', 'arraypress' )
 		];
 
+		if ( $translate ) {
+			foreach ( $countries as $code => $name ) {
+				$countries[ $code ] = __( $name, 'arraypress' );
+			}
+		}
+
 		/**
 		 * Filter the countries list
 		 *
 		 * @param array $countries Array of country code => name pairs
+		 * @param bool  $translate Whether names are translated
 		 *
 		 * @since 1.0.0
-		 *
 		 */
-		return apply_filters( 'arraypress_countries_list', $countries );
+		return apply_filters( 'arraypress_countries_list', $countries, $translate );
+	}
+
+	/**
+	 * Get raw untranslated country names
+	 *
+	 * @return array Array of country code => country name pairs
+	 * @since 1.0.0
+	 */
+	public static function raw(): array {
+		return self::all( false );
 	}
 
 	/**
 	 * Get countries formatted for select/dropdown options
 	 *
-	 * Returns array in format used by Gutenberg and React components:
-	 * [ ['value' => 'US', 'label' => 'United States'], ... ]
-	 *
+	 * @param string $format        Format type: 'value_label' or 'key_value'
 	 * @param bool   $include_empty Whether to include empty option
 	 * @param string $empty_label   Label for empty option
+	 * @param bool   $translate     Whether to translate names
 	 *
-	 * @return array Array of options with value/label keys
+	 * @return array Array of options
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
+	public static function get_options( string $format = 'value_label', bool $include_empty = false, string $empty_label = '— Select —', bool $translate = true ): array {
 		$options = [];
 
 		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label
-			];
+			if ( $format === 'key_value' ) {
+				$options[''] = $translate ? __( $empty_label, 'arraypress' ) : $empty_label;
+			} else {
+				$options[] = [
+					'value' => '',
+					'label' => $translate ? __( $empty_label, 'arraypress' ) : $empty_label
+				];
+			}
 		}
 
-		foreach ( self::all() as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name
-			];
+		foreach ( self::all( $translate ) as $code => $name ) {
+			if ( $format === 'key_value' ) {
+				$options[ $code ] = $name;
+			} else {
+				$options[] = [
+					'value' => $code,
+					'label' => $name
+				];
+			}
 		}
 
 		return $options;
 	}
 
 	/**
+	 * Get countries in key/value format
+	 *
+	 * @param bool   $include_empty Whether to include empty option
+	 * @param string $empty_label   Label for empty option
+	 * @param bool   $translate     Whether to translate names
+	 *
+	 * @return array Array of country code => name pairs
+	 * @since 1.0.0
+	 */
+	public static function get_key_value_options( bool $include_empty = false, string $empty_label = '— Select —', bool $translate = true ): array {
+		return self::get_options( 'key_value', $include_empty, $empty_label, $translate );
+	}
+
+	/**
+	 * Get countries in value/label format (Gutenberg/React compatible)
+	 *
+	 * @param bool   $include_empty Whether to include empty option
+	 * @param string $empty_label   Label for empty option
+	 * @param bool   $translate     Whether to translate names
+	 *
+	 * @return array Array of options with value/label keys
+	 * @since 1.0.0
+	 */
+	public static function get_value_label_options( bool $include_empty = false, string $empty_label = '— Select —', bool $translate = true ): array {
+		return self::get_options( 'value_label', $include_empty, $empty_label, $translate );
+	}
+
+	/**
 	 * Get country name by code
 	 *
-	 * @param string $code Country code (case-insensitive)
+	 * @param string $code      Country code (case-insensitive)
+	 * @param bool   $translate Whether to return translated name
 	 *
 	 * @return string Country name or original code if not found
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_name( string $code ): string {
+	public static function get_name( string $code, bool $translate = true ): string {
 		$code      = strtoupper( $code );
-		$countries = self::all();
+		$countries = self::all( $translate );
 
 		return $countries[ $code ] ?? $code;
 	}
@@ -353,11 +404,10 @@ class Countries {
 	 *
 	 * @return bool True if valid country code
 	 * @since 1.0.0
-	 *
 	 */
 	public static function exists( string $code ): bool {
 		$code      = strtoupper( $code );
-		$countries = self::all();
+		$countries = self::raw();
 
 		return isset( $countries[ $code ] );
 	}
@@ -365,16 +415,16 @@ class Countries {
 	/**
 	 * Get country code by name (case-insensitive search)
 	 *
-	 * @param string $name Country name to search for
+	 * @param string $name      Country name to search for
+	 * @param bool   $translate Whether to search translated names
 	 *
 	 * @return string|null Country code or null if not found
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_code( string $name ): ?string {
+	public static function get_code( string $name, bool $translate = true ): ?string {
 		$name = strtolower( trim( $name ) );
 
-		foreach ( self::all() as $code => $country_name ) {
+		foreach ( self::all( $translate ) as $code => $country_name ) {
 			if ( strtolower( $country_name ) === $name ) {
 				return $code;
 			}
@@ -386,14 +436,14 @@ class Countries {
 	/**
 	 * Search countries by partial name match
 	 *
-	 * @param string $search Search term
-	 * @param int    $limit  Maximum results to return (0 = unlimited)
+	 * @param string $search    Search term
+	 * @param int    $limit     Maximum results to return (0 = unlimited)
+	 * @param bool   $translate Whether to search translated names
 	 *
 	 * @return array Array of matching country code => name pairs
 	 * @since 1.0.0
-	 *
 	 */
-	public static function search( string $search, int $limit = 0 ): array {
+	public static function search( string $search, int $limit = 0, bool $translate = true ): array {
 		$search = strtolower( trim( $search ) );
 		if ( empty( $search ) ) {
 			return [];
@@ -401,7 +451,7 @@ class Countries {
 
 		$matches = [];
 
-		foreach ( self::all() as $code => $name ) {
+		foreach ( self::all( $translate ) as $code => $name ) {
 			if ( stripos( $name, $search ) !== false || stripos( $code, $search ) !== false ) {
 				$matches[ $code ] = $name;
 
@@ -419,14 +469,15 @@ class Countries {
 	 *
 	 * Useful for alphabetical navigation/display
 	 *
+	 * @param bool $translate Whether to use translated names
+	 *
 	 * @return array Array with letters as keys and countries as values
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_grouped(): array {
+	public static function get_grouped( bool $translate = true ): array {
 		$grouped = [];
 
-		foreach ( self::all() as $code => $name ) {
+		foreach ( self::all( $translate ) as $code => $name ) {
 			$first_letter                      = strtoupper( substr( $name, 0, 1 ) );
 			$grouped[ $first_letter ][ $code ] = $name;
 		}
@@ -441,17 +492,27 @@ class Countries {
 	 *
 	 * Returns a subset of commonly selected countries for quick access
 	 *
-	 * @param array $codes Optional custom list of country codes
+	 * @param array $codes     Optional custom list of country codes
+	 * @param bool  $translate Whether to translate names
 	 *
 	 * @return array Array of country code => name pairs
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_popular( array $codes = [] ): array {
+	public static function get_popular( array $codes = [], bool $translate = true ): array {
 		$default_popular = [ 'US', 'GB', 'CA', 'AU', 'DE', 'FR', 'ES', 'IT', 'NL', 'JP' ];
-		$codes           = ! empty( $codes ) ? $codes : $default_popular;
 
-		$countries = self::all();
+		/**
+		 * Filter the default popular countries
+		 *
+		 * @param array $default_popular Default popular country codes
+		 *
+		 * @since 1.0.0
+		 */
+		$default_popular = apply_filters( 'arraypress_countries_popular', $default_popular );
+
+		$codes = ! empty( $codes ) ? $codes : $default_popular;
+
+		$countries = self::all( $translate );
 		$popular   = [];
 
 		foreach ( $codes as $code ) {
@@ -470,14 +531,14 @@ class Countries {
 	 * @param string $code         Country code
 	 * @param bool   $include_flag Include emoji flag
 	 * @param bool   $include_code Include code in parentheses
+	 * @param bool   $translate    Whether to translate name
 	 *
 	 * @return string Formatted country string
 	 * @since 1.0.0
-	 *
 	 */
-	public static function format( string $code, bool $include_flag = false, bool $include_code = false ): string {
+	public static function format( string $code, bool $include_flag = false, bool $include_code = false, bool $translate = true ): string {
 		$code = strtoupper( $code );
-		$name = self::get_name( $code );
+		$name = self::get_name( $code, $translate );
 
 		if ( $name === $code ) {
 			return $code; // Country not found
@@ -508,7 +569,6 @@ class Countries {
 	 *
 	 * @return string Emoji flag or empty string
 	 * @since 1.0.0
-	 *
 	 */
 	public static function get_flag( string $code ): string {
 		$code = strtoupper( $code );
@@ -518,11 +578,18 @@ class Countries {
 		}
 
 		// Convert country code to emoji flag
-		return mb_convert_encoding(
-			'&#' . ( 127397 + ord( $code[0] ) ) . ';&#' . ( 127397 + ord( $code[1] ) ) . ';',
-			'UTF-8',
-			'HTML-ENTITIES'
-		);
+		$flag        = '';
+		$code_points = [];
+
+		for ( $i = 0; $i < 2; $i ++ ) {
+			$code_points[] = 127397 + ord( $code[ $i ] );
+		}
+
+		foreach ( $code_points as $code_point ) {
+			$flag .= mb_convert_encoding( '&#' . $code_point . ';', 'UTF-8', 'HTML-ENTITIES' );
+		}
+
+		return $flag;
 	}
 
 	/**
@@ -530,19 +597,20 @@ class Countries {
 	 *
 	 * @param string $selected      Selected country code
 	 * @param bool   $include_empty Include empty option
+	 * @param bool   $translate     Whether to translate names
 	 *
 	 * @return string HTML option elements
 	 * @since 1.0.0
-	 *
 	 */
-	public static function get_select_options( string $selected = '', bool $include_empty = true ): string {
+	public static function get_select_options( string $selected = '', bool $include_empty = true, bool $translate = true ): string {
 		$html = '';
 
 		if ( $include_empty ) {
-			$html .= '<option value="">— Select Country —</option>';
+			$label = $translate ? __( '— Select Country —', 'arraypress' ) : '— Select Country —';
+			$html  .= '<option value="">' . esc_html( $label ) . '</option>';
 		}
 
-		foreach ( self::all() as $code => $name ) {
+		foreach ( self::all( $translate ) as $code => $name ) {
 			$html .= sprintf(
 				'<option value="%s"%s>%s</option>',
 				esc_attr( $code ),
@@ -561,13 +629,343 @@ class Countries {
 	 *
 	 * @return string|null Sanitized country code or null if invalid
 	 * @since 1.0.0
-	 *
 	 */
 	public static function sanitize( string $code ): ?string {
 		$code = strtoupper( trim( $code ) );
 
 		if ( self::exists( $code ) ) {
 			return $code;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Check if country is in European Union
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in EU
+	 * @since 1.0.0
+	 */
+	public static function is_eu( string $code ): bool {
+		$eu_countries = [
+			'AT',
+			'BE',
+			'BG',
+			'HR',
+			'CY',
+			'CZ',
+			'DK',
+			'EE',
+			'FI',
+			'FR',
+			'DE',
+			'GR',
+			'HU',
+			'IE',
+			'IT',
+			'LV',
+			'LT',
+			'LU',
+			'MT',
+			'NL',
+			'PL',
+			'PT',
+			'RO',
+			'SK',
+			'SI',
+			'ES',
+			'SE'
+		];
+
+		return in_array( strtoupper( $code ), $eu_countries, true );
+	}
+
+	/**
+	 * Check if country is in North America
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in North America
+	 * @since 1.0.0
+	 */
+	public static function is_north_america( string $code ): bool {
+		$countries = [ 'US', 'CA', 'MX' ];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Check if country is in Asia
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in Asia
+	 * @since 1.0.0
+	 */
+	public static function is_asia( string $code ): bool {
+		$countries = [
+			'CN',
+			'IN',
+			'ID',
+			'PK',
+			'BD',
+			'JP',
+			'PH',
+			'VN',
+			'TH',
+			'MM',
+			'KR',
+			'AF',
+			'SA',
+			'UZ',
+			'MY',
+			'IQ',
+			'NP',
+			'KP',
+			'LK',
+			'AE',
+			'TW',
+			'SY',
+			'KH',
+			'JO',
+			'AZ',
+			'TJ',
+			'IL',
+			'HK',
+			'LA',
+			'LB',
+			'SG',
+			'PS',
+			'OM',
+			'KW',
+			'GE',
+			'MN',
+			'AM',
+			'QA',
+			'BH',
+			'TL',
+			'CY',
+			'BT',
+			'MO',
+			'BN',
+			'MV'
+		];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Check if country is English-speaking (major)
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if major English-speaking country
+	 * @since 1.0.0
+	 */
+	public static function is_english_speaking( string $code ): bool {
+		$countries = [
+			'US',
+			'GB',
+			'CA',
+			'AU',
+			'NZ',
+			'IE',
+			'ZA',
+			'JM',
+			'TT',
+			'BB',
+			'BS',
+			'GY',
+			'BZ',
+			'AG',
+			'DM',
+			'GD',
+			'KN',
+			'LC',
+			'VC'
+		];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Check if country is in Africa
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in Africa
+	 * @since 1.0.0
+	 */
+	public static function is_africa( string $code ): bool {
+		$countries = [
+			'NG',
+			'ET',
+			'EG',
+			'CD',
+			'ZA',
+			'TZ',
+			'KE',
+			'UG',
+			'DZ',
+			'SD',
+			'MA',
+			'AO',
+			'GH',
+			'MZ',
+			'MG',
+			'CM',
+			'CI',
+			'NE',
+			'BF',
+			'ML',
+			'MW',
+			'ZM',
+			'SN',
+			'SO',
+			'TD',
+			'ZW',
+			'GN',
+			'RW',
+			'BJ',
+			'TN',
+			'BI',
+			'SS',
+			'LY',
+			'SL',
+			'TG',
+			'ER',
+			'CF',
+			'LR',
+			'MR',
+			'NA',
+			'BW',
+			'GM',
+			'GA',
+			'LS',
+			'GW',
+			'GQ',
+			'MU',
+			'SZ',
+			'DJ',
+			'RE',
+			'KM',
+			'CV',
+			'YT',
+			'ST',
+			'SC'
+		];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Check if country is in South America
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in South America
+	 * @since 1.0.0
+	 */
+	public static function is_south_america( string $code ): bool {
+		$countries = [
+			'BR',
+			'AR',
+			'PE',
+			'CO',
+			'VE',
+			'CL',
+			'EC',
+			'BO',
+			'PY',
+			'UY',
+			'GY',
+			'SR',
+			'GF',
+			'FK'
+		];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Check if country is in Oceania
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return bool True if country is in Oceania
+	 * @since 1.0.0
+	 */
+	public static function is_oceania( string $code ): bool {
+		$countries = [
+			'AU',
+			'PG',
+			'NZ',
+			'FJ',
+			'SB',
+			'NC',
+			'PF',
+			'VU',
+			'WS',
+			'KI',
+			'TO',
+			'FM',
+			'PW',
+			'MH',
+			'CK',
+			'TV',
+			'NR',
+			'NU',
+			'TK',
+			'NF',
+			'PN',
+			'TL',
+			'GU',
+			'MP',
+			'AS'
+		];
+
+		return in_array( strtoupper( $code ), $countries, true );
+	}
+
+	/**
+	 * Get continent for country
+	 *
+	 * @param string $code Country code
+	 *
+	 * @return string|null Continent name or null if not found
+	 * @since 1.0.0
+	 */
+	public static function get_continent( string $code ): ?string {
+		$code = strtoupper( $code );
+
+		if ( self::is_africa( $code ) ) {
+			return 'Africa';
+		} elseif ( self::is_asia( $code ) ) {
+			return 'Asia';
+		} elseif ( self::is_eu( $code ) || in_array( $code, [
+				'NO',
+				'CH',
+				'IS',
+				'GB',
+				'AL',
+				'ME',
+				'MK',
+				'RS',
+				'BA',
+				'UA',
+				'BY',
+				'RU',
+				'MD'
+			], true ) ) {
+			return 'Europe';
+		} elseif ( self::is_north_america( $code ) ) {
+			return 'North America';
+		} elseif ( self::is_south_america( $code ) ) {
+			return 'South America';
+		} elseif ( self::is_oceania( $code ) ) {
+			return 'Oceania';
 		}
 
 		return null;
