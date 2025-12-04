@@ -1,22 +1,22 @@
 # WordPress Countries
 
-A lightweight PHP library for working with country data in WordPress. Simple, static methods for country codes, names, and utilities.
+A lightweight PHP library for working with country data in WordPress. Simple, static methods for country codes, names,
+continents, and utilities.
 
 ## Features
 
-- 🌍 Complete ISO 3166-1 alpha-2 country list
+- 🌍 Complete ISO 3166-1 alpha-2 country list (250+ countries)
+- 🗺️ Continent mapping and EU membership detection
 - 🎯 Simple static API - no instantiation needed
-- 📝 Multiple output formats (arrays, options, HTML)
+- 📝 Multiple output formats for dropdowns
 - 🔍 Search and validation utilities
 - 🏳️ Emoji flag support
 - 🎨 Gutenberg/React compatible formats
-- 🌐 Translation support via WordPress i18n
-- 🔌 WordPress filter support
 
 ## Installation
 
 ```bash
-composer require arraypress/wp-countries
+composer require arraypress/countries
 ```
 
 ## Basic Usage
@@ -24,174 +24,149 @@ composer require arraypress/wp-countries
 ```php
 use ArrayPress\Countries\Countries;
 
-// Get all countries (translated)
+// Get all countries
 $countries = Countries::all();
-// Returns: ['US' => 'United States', 'GB' => 'United Kingdom', ...]
-
-// Get raw country names (English)
-$countries = Countries::raw();
+// Returns: ['AF' => 'Afghanistan', 'AL' => 'Albania', ...]
 
 // Get country name
-$name = Countries::get_name('US'); // "United States"
+$name = Countries::get_name( 'US' ); // "United States"
+
+// Get country code by name
+$code = Countries::get_code( 'Germany' ); // "DE"
 
 // Check if country exists
-if (Countries::exists('US')) {
-//    // Valid country code
+if ( Countries::exists( 'US' ) ) {
+    // Valid country code
 }
 
-// Get options for select/dropdown (Gutenberg format)
-$options = Countries::get_options();
+// Validate and sanitize user input
+$country = Countries::sanitize( $_POST['country'] ); // "US" or null
+```
+
+## Dropdown Options
+
+```php
+// Gutenberg/React format (value/label)
+$options = Countries::get_value_label_options();
 // Returns: [['value' => 'US', 'label' => 'United States'], ...]
 
-// Search countries
-$results = Countries::search('united'); 
-// Returns: ['US' => 'United States', 'GB' => 'United Kingdom', ...]
+// Key/value format
+$options = Countries::get_key_value_options();
+// Returns: ['US' => 'United States', ...]
+
+// With empty option
+$options = Countries::get_value_label_options( true, '— Select Country —' );
 ```
 
-## Advanced Usage
+## Formatting & Flags
 
-### HTML Select Options
 ```php
-// Generate HTML option elements
-$html = Countries::get_select_options('US');
-echo '<select name="country">' . $html . '</select>';
+// Get emoji flag
+echo Countries::get_flag( 'US' ); // "🇺🇸"
+
+// Format with flag
+echo Countries::format( 'US', true ); // "🇺🇸 United States"
+
+// Format with code
+echo Countries::format( 'US', false, true ); // "United States (US)"
+
+// Format with both
+echo Countries::format( 'US', true, true ); // "🇺🇸 United States (US)"
 ```
 
-### Country Formatting
+## Geographic Regions
+
 ```php
-// With emoji flag
-echo Countries::format('US', true); // "🇺🇸 United States"
+// Get continent
+$continent = Countries::get_continent( 'US' ); // "North America"
+$continent = Countries::get_continent( 'DE' ); // "Europe"
 
-// With code
-echo Countries::format('US', false, true); // "United States (US)"
-
-// With both
-echo Countries::format('US', true, true); // "🇺🇸 United States (US)"
-```
-
-### Popular Countries
-```php
-// Get default popular countries
-$popular = Countries::get_popular();
-
-// Or specify your own
-$popular = Countries::get_popular(['US', 'CA', 'MX']);
-```
-
-### Grouped Display
-```php
-// Group by first letter
-$grouped = Countries::get_grouped();
-/* Returns:
-[
-//    'A' => ['AF' => 'Afghanistan', 'AL' => 'Albania', ...],
-//    'B' => ['BS' => 'Bahamas', 'BH' => 'Bahrain', ...],
-//    ...
-]
-*/
-```
-
-### Translation Support
-```php
-// Get translated names (default)
-$countries = Countries::all(true);
-
-// Get untranslated English names
-$countries = Countries::all(false);
-// or
-$countries = Countries::raw();
-
-// Search returns translated results by default
-$results = Countries::search('états', 10, true); // Searches translated names
-```
-
-## WordPress Integration
-
-### Filters
-```php
-// Modify country list
-add_filter('arraypress_countries_list', function($countries) {
-//    // Add custom country
-//    $countries['XX'] = 'Custom Country';
-//    
-//    // Remove a country
-//    unset($countries['US']);
-//    
-//    return $countries;
-});
-
-// Modify popular countries
-add_filter('arraypress_countries_popular', function($popular) {
-//    // Set your own popular countries
-//    return ['US', 'CA', 'GB', 'AU'];
-});
-```
-
-### Form Integration
-```php
-// In your form
-$selected = get_user_meta($user_id, 'country', true);
-?>
-<select name="country">
-//    <?php echo Countries::get_select_options($selected); ?>
-</select>
-```
-
-### Validation
-```php
-// Sanitize and validate user input
-$country = Countries::sanitize($_POST['country']);
-if ($country) {
-//    update_user_meta($user_id, 'country', $country);
+// Check continent
+if ( Countries::is_continent( 'JP', 'Asia' ) ) {
+    // Japan is in Asia
 }
+
+// Get all countries in a continent
+$european = Countries::get_by_continent( 'Europe' );
+
+// EU membership
+if ( Countries::is_eu( 'DE') ) {
+    // Germany is in EU
+}
+
+// Get all EU countries
+$eu_countries = Countries::get_eu_countries();
 ```
 
-### Gutenberg Block
-```javascript
-import { SelectControl } from '@wordpress/components';
+## Search
 
-// In PHP, localize the countries
-wp_localize_script('my-block', 'countryData', [
-//    'countries' => Countries::get_options()
-]);
+```php
+// Search by name or code
+$results = Countries::search( 'united' );
+// Returns: ['AE' => 'United Arab Emirates', 'GB' => 'United Kingdom', 'US' => 'United States']
 
-// In JavaScript
-<SelectControl
-//    label="Country"
-//    value={country}
-//    options={countryData.countries}
-//    onChange={setCountry}
-/>
+// Limit results
+$results = Countries::search( 'island', 5 );
+```
+
+## Helper Functions
+
+Global functions are available for convenience:
+
+```php
+// Get country name
+$name = get_country_name( 'US' ); // "United States"
+
+// Get country code
+$code = get_country_code( 'Germany' ); // "DE"
+
+// Get emoji flag
+$flag = get_country_flag( 'US' ); // "🇺🇸"
+
+// Get dropdown options
+$options = get_country_options();
+
+// Get continent
+$continent = get_country_continent( 'US'); // "North America"
+
+// Validate country code
+if ( is_valid_country( 'US' ) ) {
+    // Valid
+}
+
+// Format for display
+$display = format_country( 'US', true, true ); // "🇺🇸 United States (US)"
+
+// Sanitize user input
+$code = sanitize_country_code( $_POST['country'] );
 ```
 
 ## API Reference
 
-| Method | Description | Return Type |
-|--------|-------------|-------------|
-| `all($translate = true)` | Get all countries | `array` |
-| `raw()` | Get untranslated country names | `array` |
-| `get_options($empty, $label, $translate)` | Get Gutenberg-style options | `array` |
-| `get_name($code, $translate)` | Get country name by code | `string` |
-| `exists($code)` | Check if country exists | `bool` |
-| `get_code($name)` | Get code by country name | `?string` |
-| `search($term, $limit, $translate)` | Search countries | `array` |
-| `get_grouped($translate)` | Get countries grouped by letter | `array` |
-| `get_popular($codes, $translate)` | Get popular countries | `array` |
-| `format($code, $flag, $code, $translate)` | Format country display | `string` |
-| `get_flag($code)` | Get emoji flag | `string` |
-| `get_select_options($selected, $empty, $translate)` | Get HTML options | `string` |
-| `sanitize($code)` | Validate and sanitize code | `?string` |
+| Method                                    | Description            | Return    |
+|-------------------------------------------|------------------------|-----------|
+| `all()`                                   | Get all countries      | `array`   |
+| `get_name($code)`                         | Get country name       | `string`  |
+| `get_code($name)`                         | Get code by name       | `?string` |
+| `exists($code)`                           | Check if exists        | `bool`    |
+| `sanitize($code)`                         | Validate/sanitize      | `?string` |
+| `search($term, $limit)`                   | Search countries       | `array`   |
+| `get_options($format, $empty, $label)`    | Get dropdown options   | `array`   |
+| `get_key_value_options($empty, $label)`   | Key/value format       | `array`   |
+| `get_value_label_options($empty, $label)` | Value/label format     | `array`   |
+| `get_flag($code)`                         | Get emoji flag         | `string`  |
+| `format($code, $flag, $code)`             | Format display         | `string`  |
+| `get_continent($code)`                    | Get continent          | `?string` |
+| `is_continent($code, $continent)`         | Check continent        | `bool`    |
+| `get_by_continent($continent)`            | Countries in continent | `array`   |
+| `is_eu($code)`                            | Check EU membership    | `bool`    |
+| `get_eu_countries()`                      | Get EU countries       | `array`   |
 
 ## Requirements
 
 - PHP 7.4 or higher
-- WordPress 5.0 or higher
+- WordPress 6.0 or higher
 
 ## License
 
 GPL-2.0-or-later
-
-## Support
-
-- [Documentation](https://github.com/arraypress/wp-countries)
-- [Issue Tracker](https://github.com/arraypress/wp-countries/issues)
