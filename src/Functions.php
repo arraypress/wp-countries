@@ -67,16 +67,12 @@ if ( ! function_exists( 'get_country_options' ) ) {
 	/**
 	 * Get countries formatted for select/dropdown options.
 	 *
-	 * Returns array in format used by Gutenberg and React components:
-	 * [ ['value' => 'US', 'label' => 'United States'], ... ]
+	 * @param bool $as_key_value If true, returns ['code' => 'name']. If false, returns [['value' => '', 'label' => '']].
 	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array Array of options with value/label keys.
+	 * @return array Array of options.
 	 */
-	function get_country_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		return Countries::get_value_label_options( $include_empty, $empty_label );
+	function get_country_options( bool $as_key_value = false ): array {
+		return Countries::get_options( $as_key_value );
 	}
 }
 

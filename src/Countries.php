@@ -734,64 +734,27 @@ class Countries {
 	/** Options ***********************************************************/
 
 	/**
-	 * Get countries formatted for select/dropdown options.
+	 * Get country options.
 	 *
-	 * @param string $format        Format type: 'value_label' or 'key_value'.
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
+	 * @param bool $as_key_value If true, returns ['code' => 'name']. If false, returns [['value' => '', 'label' => '']].
 	 *
 	 * @return array Array of options.
 	 */
-	public static function get_options( string $format = 'value_label', bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$options = [];
-
-		if ( $include_empty ) {
-			if ( $format === 'key_value' ) {
-				$options[''] = $empty_label;
-			} else {
-				$options[] = [
-					'value' => '',
-					'label' => $empty_label,
-				];
-			}
+	public static function get_options( bool $as_key_value = false ): array {
+		if ( $as_key_value ) {
+			return self::COUNTRIES;
 		}
 
+		$options = [];
+
 		foreach ( self::COUNTRIES as $code => $name ) {
-			if ( $format === 'key_value' ) {
-				$options[ $code ] = $name;
-			} else {
-				$options[] = [
-					'value' => $code,
-					'label' => $name,
-				];
-			}
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
 		}
 
 		return $options;
-	}
-
-	/**
-	 * Get countries in key/value format.
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array Array of country code => name pairs.
-	 */
-	public static function get_key_value_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		return self::get_options( 'key_value', $include_empty, $empty_label );
-	}
-
-	/**
-	 * Get countries in value/label format (Gutenberg/React compatible).
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array Array of options with value/label keys.
-	 */
-	public static function get_value_label_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		return self::get_options( 'value_label', $include_empty, $empty_label );
 	}
 
 	/** Formatting ********************************************************/
