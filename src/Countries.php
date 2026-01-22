@@ -548,6 +548,21 @@ class Countries {
 	];
 
 	/**
+	 * Continent codes mapping (ISO 3166-1 style).
+	 *
+	 * Used by geo-IP services like IPInfo.
+	 */
+	private const CONTINENT_CODES = [
+		'AF' => 'Africa',
+		'AN' => 'Antarctica',
+		'AS' => 'Asia',
+		'EU' => 'Europe',
+		'NA' => 'North America',
+		'OC' => 'Oceania',
+		'SA' => 'South America',
+	];
+
+	/**
 	 * European Union member countries.
 	 */
 	private const EU_COUNTRIES = [
@@ -578,6 +593,48 @@ class Countries {
 		'SI',
 		'ES',
 		'SE',
+	];
+
+	/**
+	 * Countries commonly associated with higher fraud rates.
+	 *
+	 * This is not exhaustive and should be customized per business.
+	 */
+	private const HIGH_RISK_COUNTRIES = [
+		'BY',
+		'BD',
+		'BR',
+		'CN',
+		'CO',
+		'EG',
+		'GH',
+		'ID',
+		'IN',
+		'MX',
+		'MY',
+		'NG',
+		'PH',
+		'PK',
+		'RO',
+		'RU',
+		'TH',
+		'UA',
+		'VE',
+		'VN',
+	];
+
+	/**
+	 * Countries under US Treasury OFAC comprehensive sanctions.
+	 *
+	 * Note: This list changes - verify against current OFAC SDN list.
+	 */
+	private const SANCTIONED_COUNTRIES = [
+		'CU',
+		'IR',
+		'KP',
+		'RU',
+		'SY',
+		'VE',
 	];
 
 	/** Country Data ******************************************************/
@@ -802,7 +859,68 @@ class Countries {
 		return $flag;
 	}
 
-	/** Geographic Regions ************************************************/
+	/** Continents ********************************************************/
+
+	/**
+	 * Get all continent codes.
+	 *
+	 * @return array Array of continent code => name pairs.
+	 */
+	public static function get_continent_codes(): array {
+		return self::CONTINENT_CODES;
+	}
+
+	/**
+	 * Get continent code from name.
+	 *
+	 * @param string $name Continent name.
+	 *
+	 * @return string|null Continent code or null if not found.
+	 */
+	public static function get_continent_code( string $name ): ?string {
+		$flipped = array_flip( self::CONTINENT_CODES );
+
+		return $flipped[ $name ] ?? null;
+	}
+
+	/**
+	 * Get continent name from code.
+	 *
+	 * @param string $code Continent code (e.g., 'EU', 'NA').
+	 *
+	 * @return string|null Continent name or null if not found.
+	 */
+	public static function get_continent_name( string $code ): ?string {
+		return self::CONTINENT_CODES[ strtoupper( $code ) ] ?? null;
+	}
+
+	/**
+	 * Get continent options in value/label format.
+	 *
+	 * @param bool   $include_empty Whether to include empty option.
+	 * @param string $empty_label   Label for empty option.
+	 *
+	 * @return array<array{value: string, label: string}>
+	 */
+	public static function get_continent_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
+		$options = [];
+
+		if ( $include_empty ) {
+			$options[] = [
+				'value' => '',
+				'label' => $empty_label,
+			];
+		}
+
+		foreach ( self::CONTINENT_CODES as $code => $name ) {
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
+		}
+
+		return $options;
+	}
 
 	/**
 	 * Get continent for country.
@@ -816,35 +934,90 @@ class Countries {
 	}
 
 	/**
+	 * Get continent code for country.
+	 *
+	 * @param string $code Country code.
+	 *
+	 * @return string|null Continent code or null if not found.
+	 */
+	public static function get_country_continent_code( string $code ): ?string {
+		$continent_name = self::get_continent( $code );
+
+		if ( $continent_name === null ) {
+			return null;
+		}
+
+		return self::get_continent_code( $continent_name );
+	}
+
+	/**
 	 * Check if country is in a specific continent.
 	 *
 	 * @param string $code      Country code.
-	 * @param string $continent Continent name.
+	 * @param string $continent Continent name or code.
 	 *
 	 * @return bool True if country is in the specified continent.
 	 */
 	public static function is_continent( string $code, string $continent ): bool {
-		return self::get_continent( $code ) === $continent;
+		// Convert code to name if needed
+		$continent_name = self::CONTINENT_CODES[ strtoupper( $continent ) ] ?? $continent;
+
+		return self::get_continent( $code ) === $continent_name;
 	}
 
 	/**
 	 * Get all countries in a continent.
 	 *
-	 * @param string $continent Continent name.
+	 * @param string $continent Continent name or code.
 	 *
 	 * @return array Array of country code => name pairs.
 	 */
 	public static function get_by_continent( string $continent ): array {
+		// Convert code to name if needed
+		$continent_name = self::CONTINENT_CODES[ strtoupper( $continent ) ] ?? $continent;
+
 		$countries = [];
 
 		foreach ( self::CONTINENTS as $code => $cont ) {
-			if ( $cont === $continent && isset( self::COUNTRIES[ $code ] ) ) {
+			if ( $cont === $continent_name && isset( self::COUNTRIES[ $code ] ) ) {
 				$countries[ $code ] = self::COUNTRIES[ $code ];
 			}
 		}
 
 		return $countries;
 	}
+
+	/**
+	 * Get countries by continent in value/label format.
+	 *
+	 * @param string $continent     Continent name or code.
+	 * @param bool   $include_empty Whether to include empty option.
+	 * @param string $empty_label   Label for empty option.
+	 *
+	 * @return array<array{value: string, label: string}>
+	 */
+	public static function get_by_continent_options( string $continent, bool $include_empty = false, string $empty_label = '— Select —' ): array {
+		$countries = self::get_by_continent( $continent );
+		$options   = [];
+
+		if ( $include_empty ) {
+			$options[] = [
+				'value' => '',
+				'label' => $empty_label,
+			];
+		}
+
+		foreach ( $countries as $code => $name ) {
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
+		}
+
+		return $options;
+	}
+
+	/** European Union ****************************************************/
 
 	/**
 	 * Check if country is in European Union.
@@ -872,6 +1045,169 @@ class Countries {
 		}
 
 		return $countries;
+	}
+
+	/**
+	 * Get EU countries in value/label format.
+	 *
+	 * @param bool   $include_empty Whether to include empty option.
+	 * @param string $empty_label   Label for empty option.
+	 *
+	 * @return array<array{value: string, label: string}>
+	 */
+	public static function get_eu_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
+		$countries = self::get_eu_countries();
+		$options   = [];
+
+		if ( $include_empty ) {
+			$options[] = [
+				'value' => '',
+				'label' => $empty_label,
+			];
+		}
+
+		foreach ( $countries as $code => $name ) {
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
+		}
+
+		return $options;
+	}
+
+	/** Risk Categories ***************************************************/
+
+	/**
+	 * Get high-risk country codes.
+	 *
+	 * @return array Array of country codes.
+	 */
+	public static function get_high_risk_codes(): array {
+		return self::HIGH_RISK_COUNTRIES;
+	}
+
+	/**
+	 * Get high-risk countries.
+	 *
+	 * @return array Array of country code => name pairs.
+	 */
+	public static function get_high_risk_countries(): array {
+		$countries = [];
+
+		foreach ( self::HIGH_RISK_COUNTRIES as $code ) {
+			if ( isset( self::COUNTRIES[ $code ] ) ) {
+				$countries[ $code ] = self::COUNTRIES[ $code ];
+			}
+		}
+
+		return $countries;
+	}
+
+	/**
+	 * Get high-risk countries in value/label format.
+	 *
+	 * @param bool   $include_empty Whether to include empty option.
+	 * @param string $empty_label   Label for empty option.
+	 *
+	 * @return array<array{value: string, label: string}>
+	 */
+	public static function get_high_risk_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
+		$countries = self::get_high_risk_countries();
+		$options   = [];
+
+		if ( $include_empty ) {
+			$options[] = [
+				'value' => '',
+				'label' => $empty_label,
+			];
+		}
+
+		foreach ( $countries as $code => $name ) {
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Check if country is high-risk.
+	 *
+	 * @param string $code Country code.
+	 *
+	 * @return bool True if country is considered high-risk.
+	 */
+	public static function is_high_risk( string $code ): bool {
+		return in_array( strtoupper( $code ), self::HIGH_RISK_COUNTRIES, true );
+	}
+
+	/**
+	 * Get sanctioned country codes.
+	 *
+	 * @return array Array of country codes.
+	 */
+	public static function get_sanctioned_codes(): array {
+		return self::SANCTIONED_COUNTRIES;
+	}
+
+	/**
+	 * Get sanctioned countries.
+	 *
+	 * @return array Array of country code => name pairs.
+	 */
+	public static function get_sanctioned_countries(): array {
+		$countries = [];
+
+		foreach ( self::SANCTIONED_COUNTRIES as $code ) {
+			if ( isset( self::COUNTRIES[ $code ] ) ) {
+				$countries[ $code ] = self::COUNTRIES[ $code ];
+			}
+		}
+
+		return $countries;
+	}
+
+	/**
+	 * Get sanctioned countries in value/label format.
+	 *
+	 * @param bool   $include_empty Whether to include empty option.
+	 * @param string $empty_label   Label for empty option.
+	 *
+	 * @return array<array{value: string, label: string}>
+	 */
+	public static function get_sanctioned_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
+		$countries = self::get_sanctioned_countries();
+		$options   = [];
+
+		if ( $include_empty ) {
+			$options[] = [
+				'value' => '',
+				'label' => $empty_label,
+			];
+		}
+
+		foreach ( $countries as $code => $name ) {
+			$options[] = [
+				'value' => $code,
+				'label' => $name,
+			];
+		}
+
+		return $options;
+	}
+
+	/**
+	 * Check if country is sanctioned.
+	 *
+	 * @param string $code Country code.
+	 *
+	 * @return bool True if country is under sanctions.
+	 */
+	public static function is_sanctioned( string $code ): bool {
+		return in_array( strtoupper( $code ), self::SANCTIONED_COUNTRIES, true );
 	}
 
 }
