@@ -637,7 +637,9 @@ class Countries {
 		'VE',
 	];
 
-	/** Country Data ******************************************************/
+	/* ========================================================================
+	 * COUNTRY DATA
+	 * ======================================================================== */
 
 	/**
 	 * Get all countries.
@@ -731,36 +733,12 @@ class Countries {
 		return self::exists( $code ) ? $code : null;
 	}
 
-	/** Options ***********************************************************/
+	/* ========================================================================
+	 * FORMATTING & RENDERING
+	 * ======================================================================== */
 
 	/**
-	 * Get country options.
-	 *
-	 * @param bool $as_key_value If true, returns ['code' => 'name']. If false, returns [['value' => '', 'label' => '']].
-	 *
-	 * @return array Array of options.
-	 */
-	public static function get_options( bool $as_key_value = false ): array {
-		if ( $as_key_value ) {
-			return self::COUNTRIES;
-		}
-
-		$options = [];
-
-		foreach ( self::COUNTRIES as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
-	}
-
-	/** Formatting ********************************************************/
-
-	/**
-	 * Format country for display with optional flag.
+	 * Format country for display with optional flag and code.
 	 *
 	 * @param string $code         Country code.
 	 * @param bool   $include_flag Include emoji flag.
@@ -776,22 +754,61 @@ class Countries {
 			return $code;
 		}
 
-		$formatted = '';
+		$parts = [];
 
 		if ( $include_flag ) {
 			$flag = self::get_flag( $code );
 			if ( $flag ) {
-				$formatted .= $flag . ' ';
+				$parts[] = $flag;
 			}
 		}
 
-		$formatted .= $name;
+		$parts[] = $name;
 
 		if ( $include_code ) {
-			$formatted .= ' (' . $code . ')';
+			$parts[] = '(' . $code . ')';
 		}
 
-		return $formatted;
+		return implode( ' ', $parts );
+	}
+
+	/**
+	 * Render a country code as formatted HTML
+	 *
+	 * Displays a country code with optional emoji flag and country name.
+	 * Returns null for empty or invalid codes.
+	 *
+	 * @param string $code         Country code (ISO 3166-1 alpha-2, e.g., 'US', 'GB').
+	 * @param bool   $include_flag Include emoji flag (default true).
+	 * @param bool   $include_name Include country name (default true).
+	 *
+	 * @return string|null Formatted country HTML or null if empty/invalid.
+	 */
+	public static function render( string $code, bool $include_flag = true, bool $include_name = true ): ?string {
+		if ( empty( $code ) ) {
+			return null;
+		}
+
+		$code = strtoupper( trim( $code ) );
+
+		if ( ! self::exists( $code ) ) {
+			return esc_html( $code );
+		}
+
+		$parts = [];
+
+		if ( $include_flag ) {
+			$flag = self::get_flag( $code );
+			if ( $flag ) {
+				$parts[] = $flag;
+			}
+		}
+
+		if ( $include_name ) {
+			$parts[] = self::get_name( $code );
+		}
+
+		return esc_html( implode( ' ', $parts ) );
 	}
 
 	/**
@@ -822,7 +839,9 @@ class Countries {
 		return $flag;
 	}
 
-	/** Continents ********************************************************/
+	/* ========================================================================
+	 * CONTINENTS
+	 * ======================================================================== */
 
 	/**
 	 * Get all continent codes.
@@ -855,34 +874,6 @@ class Countries {
 	 */
 	public static function get_continent_name( string $code ): ?string {
 		return self::CONTINENT_CODES[ strtoupper( $code ) ] ?? null;
-	}
-
-	/**
-	 * Get continent options in value/label format.
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array<array{value: string, label: string}>
-	 */
-	public static function get_continent_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$options = [];
-
-		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label,
-			];
-		}
-
-		foreach ( self::CONTINENT_CODES as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
 	}
 
 	/**
@@ -922,7 +913,6 @@ class Countries {
 	 * @return bool True if country is in the specified continent.
 	 */
 	public static function is_continent( string $code, string $continent ): bool {
-		// Convert code to name if needed
 		$continent_name = self::CONTINENT_CODES[ strtoupper( $continent ) ] ?? $continent;
 
 		return self::get_continent( $code ) === $continent_name;
@@ -936,7 +926,6 @@ class Countries {
 	 * @return array Array of country code => name pairs.
 	 */
 	public static function get_by_continent( string $continent ): array {
-		// Convert code to name if needed
 		$continent_name = self::CONTINENT_CODES[ strtoupper( $continent ) ] ?? $continent;
 
 		$countries = [];
@@ -950,37 +939,9 @@ class Countries {
 		return $countries;
 	}
 
-	/**
-	 * Get countries by continent in value/label format.
-	 *
-	 * @param string $continent     Continent name or code.
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array<array{value: string, label: string}>
-	 */
-	public static function get_by_continent_options( string $continent, bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$countries = self::get_by_continent( $continent );
-		$options   = [];
-
-		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label,
-			];
-		}
-
-		foreach ( $countries as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
-	}
-
-	/** European Union ****************************************************/
+	/* ========================================================================
+	 * EUROPEAN UNION
+	 * ======================================================================== */
 
 	/**
 	 * Check if country is in European Union.
@@ -1010,44 +971,19 @@ class Countries {
 		return $countries;
 	}
 
-	/**
-	 * Get EU countries in value/label format.
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array<array{value: string, label: string}>
-	 */
-	public static function get_eu_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$countries = self::get_eu_countries();
-		$options   = [];
-
-		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label,
-			];
-		}
-
-		foreach ( $countries as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
-	}
-
-	/** Risk Categories ***************************************************/
+	/* ========================================================================
+	 * RISK CATEGORIES
+	 * ======================================================================== */
 
 	/**
-	 * Get high-risk country codes.
+	 * Check if country is high-risk.
 	 *
-	 * @return array Array of country codes.
+	 * @param string $code Country code.
+	 *
+	 * @return bool True if country is considered high-risk.
 	 */
-	public static function get_high_risk_codes(): array {
-		return self::HIGH_RISK_COUNTRIES;
+	public static function is_high_risk( string $code ): bool {
+		return in_array( strtoupper( $code ), self::HIGH_RISK_COUNTRIES, true );
 	}
 
 	/**
@@ -1068,52 +1004,14 @@ class Countries {
 	}
 
 	/**
-	 * Get high-risk countries in value/label format.
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array<array{value: string, label: string}>
-	 */
-	public static function get_high_risk_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$countries = self::get_high_risk_countries();
-		$options   = [];
-
-		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label,
-			];
-		}
-
-		foreach ( $countries as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
-	}
-
-	/**
-	 * Check if country is high-risk.
+	 * Check if country is sanctioned.
 	 *
 	 * @param string $code Country code.
 	 *
-	 * @return bool True if country is considered high-risk.
+	 * @return bool True if country is under sanctions.
 	 */
-	public static function is_high_risk( string $code ): bool {
-		return in_array( strtoupper( $code ), self::HIGH_RISK_COUNTRIES, true );
-	}
-
-	/**
-	 * Get sanctioned country codes.
-	 *
-	 * @return array Array of country codes.
-	 */
-	public static function get_sanctioned_codes(): array {
-		return self::SANCTIONED_COUNTRIES;
+	public static function is_sanctioned( string $code ): bool {
+		return in_array( strtoupper( $code ), self::SANCTIONED_COUNTRIES, true );
 	}
 
 	/**
@@ -1131,46 +1029,6 @@ class Countries {
 		}
 
 		return $countries;
-	}
-
-	/**
-	 * Get sanctioned countries in value/label format.
-	 *
-	 * @param bool   $include_empty Whether to include empty option.
-	 * @param string $empty_label   Label for empty option.
-	 *
-	 * @return array<array{value: string, label: string}>
-	 */
-	public static function get_sanctioned_options( bool $include_empty = false, string $empty_label = '— Select —' ): array {
-		$countries = self::get_sanctioned_countries();
-		$options   = [];
-
-		if ( $include_empty ) {
-			$options[] = [
-				'value' => '',
-				'label' => $empty_label,
-			];
-		}
-
-		foreach ( $countries as $code => $name ) {
-			$options[] = [
-				'value' => $code,
-				'label' => $name,
-			];
-		}
-
-		return $options;
-	}
-
-	/**
-	 * Check if country is sanctioned.
-	 *
-	 * @param string $code Country code.
-	 *
-	 * @return bool True if country is under sanctions.
-	 */
-	public static function is_sanctioned( string $code ): bool {
-		return in_array( strtoupper( $code ), self::SANCTIONED_COUNTRIES, true );
 	}
 
 }

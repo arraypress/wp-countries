@@ -8,10 +8,9 @@ continents, and utilities.
 - 🌍 Complete ISO 3166-1 alpha-2 country list (250+ countries)
 - 🗺️ Continent mapping and EU membership detection
 - 🎯 Simple static API - no instantiation needed
-- 📝 Multiple output formats for dropdowns
 - 🔍 Search and validation utilities
 - 🏳️ Emoji flag support
-- 🎨 Gutenberg/React compatible formats
+- ⚠️ Risk and sanctions categorization
 
 ## Installation
 
@@ -43,35 +42,24 @@ if ( Countries::exists( 'US' ) ) {
 $country = Countries::sanitize( $_POST['country'] ); // "US" or null
 ```
 
-## Dropdown Options
-
-```php
-// Gutenberg/React format (value/label)
-$options = Countries::get_value_label_options();
-// Returns: [['value' => 'US', 'label' => 'United States'], ...]
-
-// Key/value format
-$options = Countries::get_key_value_options();
-// Returns: ['US' => 'United States', ...]
-
-// With empty option
-$options = Countries::get_value_label_options( true, '— Select Country —' );
-```
-
-## Formatting & Flags
+## Formatting & Rendering
 
 ```php
 // Get emoji flag
 echo Countries::get_flag( 'US' ); // "🇺🇸"
 
-// Format with flag
+// Format as plain string
 echo Countries::format( 'US', true ); // "🇺🇸 United States"
-
-// Format with code
 echo Countries::format( 'US', false, true ); // "United States (US)"
-
-// Format with both
 echo Countries::format( 'US', true, true ); // "🇺🇸 United States (US)"
+
+// Render as HTML (for admin tables, templates)
+echo Countries::render( 'US' ); // "🇺🇸 United States" (escaped HTML)
+echo Countries::render( 'US', true, false ); // "🇺🇸" (flag only)
+echo Countries::render( 'US', false ); // "United States" (name only)
+
+// Returns null for empty codes
+$html = Countries::render( '' ); // null
 ```
 
 ## Geographic Regions
@@ -81,21 +69,59 @@ echo Countries::format( 'US', true, true ); // "🇺🇸 United States (US)"
 $continent = Countries::get_continent( 'US' ); // "North America"
 $continent = Countries::get_continent( 'DE' ); // "Europe"
 
+// Get continent code
+$code = Countries::get_country_continent_code( 'US' ); // "NA"
+
 // Check continent
 if ( Countries::is_continent( 'JP', 'Asia' ) ) {
     // Japan is in Asia
 }
 
+// Works with continent codes too
+if ( Countries::is_continent( 'JP', 'AS' ) ) {
+    // Also works
+}
+
 // Get all countries in a continent
 $european = Countries::get_by_continent( 'Europe' );
+$asian    = Countries::get_by_continent( 'AS' ); // Also accepts codes
 
+// Get all continent codes
+$continents = Countries::get_continent_codes();
+// Returns: ['AF' => 'Africa', 'AN' => 'Antarctica', ...]
+```
+
+## European Union
+
+```php
 // EU membership
-if ( Countries::is_eu( 'DE') ) {
+if ( Countries::is_eu( 'DE' ) ) {
     // Germany is in EU
 }
 
 // Get all EU countries
 $eu_countries = Countries::get_eu_countries();
+// Returns: ['AT' => 'Austria', 'BE' => 'Belgium', ...]
+```
+
+## Risk Categories
+
+```php
+// Check if country is high-risk
+if ( Countries::is_high_risk( 'NG' ) ) {
+    // Apply additional verification
+}
+
+// Get all high-risk countries
+$high_risk = Countries::get_high_risk_countries();
+
+// Check if country is under sanctions
+if ( Countries::is_sanctioned( 'KP' ) ) {
+    // Block transaction
+}
+
+// Get all sanctioned countries
+$sanctioned = Countries::get_sanctioned_countries();
 ```
 
 ## Search
@@ -117,50 +143,48 @@ Global functions are available for convenience:
 // Get country name
 $name = get_country_name( 'US' ); // "United States"
 
-// Get country code
-$code = get_country_code( 'Germany' ); // "DE"
-
 // Get emoji flag
 $flag = get_country_flag( 'US' ); // "🇺🇸"
 
-// Get dropdown options
+// Get all countries as code => name pairs
 $options = get_country_options();
 
 // Get continent
-$continent = get_country_continent( 'US'); // "North America"
+$continent = get_country_continent( 'US' ); // "North America"
 
-// Validate country code
-if ( is_valid_country( 'US' ) ) {
-    // Valid
-}
-
-// Format for display
-$display = format_country( 'US', true, true ); // "🇺🇸 United States (US)"
+// Render as HTML
+$html = render_country( 'US' ); // "🇺🇸 United States"
 
 // Sanitize user input
-$code = sanitize_country_code( $_POST['country'] );
+$code = sanitize_country_code( $_POST['country'] ); // "US" or null
 ```
 
 ## API Reference
 
-| Method                                    | Description            | Return    |
-|-------------------------------------------|------------------------|-----------|
-| `all()`                                   | Get all countries      | `array`   |
-| `get_name($code)`                         | Get country name       | `string`  |
-| `get_code($name)`                         | Get code by name       | `?string` |
-| `exists($code)`                           | Check if exists        | `bool`    |
-| `sanitize($code)`                         | Validate/sanitize      | `?string` |
-| `search($term, $limit)`                   | Search countries       | `array`   |
-| `get_options($format, $empty, $label)`    | Get dropdown options   | `array`   |
-| `get_key_value_options($empty, $label)`   | Key/value format       | `array`   |
-| `get_value_label_options($empty, $label)` | Value/label format     | `array`   |
-| `get_flag($code)`                         | Get emoji flag         | `string`  |
-| `format($code, $flag, $code)`             | Format display         | `string`  |
-| `get_continent($code)`                    | Get continent          | `?string` |
-| `is_continent($code, $continent)`         | Check continent        | `bool`    |
-| `get_by_continent($continent)`            | Countries in continent | `array`   |
-| `is_eu($code)`                            | Check EU membership    | `bool`    |
-| `get_eu_countries()`                      | Get EU countries       | `array`   |
+| Method                              | Description               | Return    |
+|-------------------------------------|---------------------------|-----------|
+| `all()`                             | Get all countries         | `array`   |
+| `get_name($code)`                   | Get country name          | `string`  |
+| `get_code($name)`                   | Get code by name          | `?string` |
+| `exists($code)`                     | Check if exists           | `bool`    |
+| `sanitize($code)`                   | Validate/sanitize         | `?string` |
+| `search($term, $limit)`             | Search countries          | `array`   |
+| `format($code, $flag, $code)`       | Format as plain string    | `string`  |
+| `render($code, $flag, $name)`       | Render as HTML            | `?string` |
+| `get_flag($code)`                   | Get emoji flag            | `string`  |
+| `get_continent($code)`              | Get continent name        | `?string` |
+| `get_continent_codes()`             | Get all continent codes   | `array`   |
+| `get_continent_code($name)`         | Continent name to code    | `?string` |
+| `get_continent_name($code)`         | Continent code to name    | `?string` |
+| `get_country_continent_code($code)` | Country to continent code | `?string` |
+| `is_continent($code, $continent)`   | Check continent           | `bool`    |
+| `get_by_continent($continent)`      | Countries in continent    | `array`   |
+| `is_eu($code)`                      | Check EU membership       | `bool`    |
+| `get_eu_countries()`                | Get EU countries          | `array`   |
+| `is_high_risk($code)`               | Check high-risk status    | `bool`    |
+| `get_high_risk_countries()`         | Get high-risk countries   | `array`   |
+| `is_sanctioned($code)`              | Check sanctions status    | `bool`    |
+| `get_sanctioned_countries()`        | Get sanctioned countries  | `array`   |
 
 ## Requirements
 

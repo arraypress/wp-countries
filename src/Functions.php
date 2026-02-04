@@ -5,16 +5,6 @@
  * Provides convenient global functions for common country operations.
  * These functions are wrappers around the ArrayPress\Countries\Countries class.
  *
- * Functions included:
- * - get_country_name() - Get country name by code
- * - get_country_code() - Get country code by name
- * - get_country_flag() - Get emoji flag for country
- * - get_country_options() - Get countries formatted for select/dropdown
- * - get_country_continent() - Get continent for country
- * - is_valid_country() - Check if country code is valid
- * - format_country() - Format country with optional flag and code
- * - sanitize_country_code() - Validate and sanitize country code
- *
  * @package ArrayPress\Countries
  * @since   1.0.0
  */
@@ -37,19 +27,6 @@ if ( ! function_exists( 'get_country_name' ) ) {
 	}
 }
 
-if ( ! function_exists( 'get_country_code' ) ) {
-	/**
-	 * Get country code by name.
-	 *
-	 * @param string $name Country name to search for.
-	 *
-	 * @return string|null Country code or null if not found.
-	 */
-	function get_country_code( string $name ): ?string {
-		return Countries::get_code( $name );
-	}
-}
-
 if ( ! function_exists( 'get_country_flag' ) ) {
 	/**
 	 * Get emoji flag for country.
@@ -60,19 +37,6 @@ if ( ! function_exists( 'get_country_flag' ) ) {
 	 */
 	function get_country_flag( string $code ): string {
 		return Countries::get_flag( $code );
-	}
-}
-
-if ( ! function_exists( 'get_country_options' ) ) {
-	/**
-	 * Get countries formatted for select/dropdown options.
-	 *
-	 * @param bool $as_key_value If true, returns ['code' => 'name']. If false, returns [['value' => '', 'label' => '']].
-	 *
-	 * @return array Array of options.
-	 */
-	function get_country_options( bool $as_key_value = false ): array {
-		return Countries::get_options( $as_key_value );
 	}
 }
 
@@ -89,34 +53,6 @@ if ( ! function_exists( 'get_country_continent' ) ) {
 	}
 }
 
-if ( ! function_exists( 'is_valid_country' ) ) {
-	/**
-	 * Check if country code is valid.
-	 *
-	 * @param string $code Country code to check.
-	 *
-	 * @return bool True if valid country code.
-	 */
-	function is_valid_country( string $code ): bool {
-		return Countries::exists( $code );
-	}
-}
-
-if ( ! function_exists( 'format_country' ) ) {
-	/**
-	 * Format country for display with optional flag and code.
-	 *
-	 * @param string $code         Country code.
-	 * @param bool   $include_flag Include emoji flag.
-	 * @param bool   $include_code Include code in parentheses.
-	 *
-	 * @return string Formatted country string.
-	 */
-	function format_country( string $code, bool $include_flag = false, bool $include_code = false ): string {
-		return Countries::format( $code, $include_flag, $include_code );
-	}
-}
-
 if ( ! function_exists( 'sanitize_country_code' ) ) {
 	/**
 	 * Validate and sanitize country code.
@@ -127,5 +63,31 @@ if ( ! function_exists( 'sanitize_country_code' ) ) {
 	 */
 	function sanitize_country_code( string $code ): ?string {
 		return Countries::sanitize( $code );
+	}
+}
+
+if ( ! function_exists( 'get_country_options' ) ) {
+	/**
+	 * Get all countries as code => name pairs.
+	 *
+	 * @return array Array of country code => country name pairs.
+	 */
+	function get_country_options(): array {
+		return Countries::all();
+	}
+}
+
+if ( ! function_exists( 'render_country' ) ) {
+	/**
+	 * Render a country code as formatted HTML with flag and name.
+	 *
+	 * @param string $code         Country code (ISO 3166-1 alpha-2).
+	 * @param bool   $include_flag Include emoji flag (default true).
+	 * @param bool   $include_name Include country name (default true).
+	 *
+	 * @return string|null Formatted country HTML or null if empty/invalid.
+	 */
+	function render_country( string $code, bool $include_flag = true, bool $include_name = true ): ?string {
+		return Countries::render( $code, $include_flag, $include_name );
 	}
 }
